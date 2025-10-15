@@ -46,60 +46,91 @@ Siga os passos abaixo para compilar a aplicação e gerar o arquivo `.jar`.
    ```
    Ao final, o artefato `dimp-processor-1.0.0.jar` estará disponível no diretório `target/`.
 
-## Como Rodar o Projeto com Docker
+## Como Rodar o Projeto (Opções)
 
-A maneira mais simples de executar todo o ambiente (aplicação, banco de dados e BI) é usando o Docker e o Docker Compose.
+Existem duas maneiras de executar o ambiente: construindo a imagem localmente ou usando a imagem pré-construída do Docker Hub.
 
-### Pré-requisitos
+### Opção 1: Construindo a Imagem Localmente (Build Local)
+
+Esta abordagem é ideal para desenvolvimento e para quando você faz alterações no código-fonte.
+
+#### Pré-requisitos
 
 - **Docker**
 - **Docker Compose**
 
-### Passo a Passo
+#### Passo a Passo
 
 1. **Navegue até a raiz do projeto:**
-   Certifique-se de que você está no diretório `dimp-processor`, onde o arquivo `docker-compose.yml` está localizado.
+   Certifique-se de que você está no diretório `dimp-processor`, onde o arquivo `docker-compose.yml` principal está localizado.
 
-2. **Suba os contêineres:**
-   Execute o comando a seguir para construir as imagens e iniciar todos os serviços em segundo plano (`-d`).
+2. **Crie a pasta para os arquivos DIMP:**
+   ```bash
+   mkdir -p dimp-files
+   ```
+
+3. **Suba os contêineres:**
+   Execute o comando a seguir para construir a imagem da aplicação e iniciar todos os serviços.
    ```bash
    docker-compose up --build -d
    ```
-   Este comando irá:
-   - Construir a imagem da aplicação `dimp-processor` a partir do `Dockerfile`.
-   - Baixar e iniciar um contêiner do `PostgreSQL`.
-   - Construir e iniciar um contêiner do `Metabase`.
-   - Criar um volume (`postgres-data`) para persistir os dados do banco.
-   - Criar um volume (`./dimp-files:/data`) para que a aplicação possa acessar os arquivos DIMP que você colocar no diretório `dimp-files`.
 
-3. **Coloque um arquivo DIMP para teste:**
-   Copie um arquivo `.txt` no formato DIMP para o diretório `dimp-files` na raiz do projeto. O serviço `dimp-processor` irá detectá-lo e processá-lo automaticamente.
+### Opção 2: Usando a Imagem do Docker Hub (Recomendado para Produção/Staging)
 
-4. **Verifique os logs (opcional):**
+Esta abordagem é mais rápida, pois utiliza uma imagem já pronta (`saulomed/dimp-processor:latest`), sem a necessidade de compilar o projeto.
+
+#### Pré-requisitos
+
+- **Docker**
+- **Docker Compose**
+
+#### Passo a Passo
+
+1. **Navegue até o diretório `docker-run`:**
+   ```bash
+   cd dimp-processor/docker-run
+   ```
+
+2. **Crie a pasta para os arquivos DIMP (se não existir):**
+   O diretório `dimp-files` é mapeado para o contêiner e é onde a aplicação busca os arquivos a serem processados.
+   ```bash
+   mkdir -p dimp-files
+   ```
+
+3. **Suba os contêineres:**
+   Execute o comando a seguir para baixar as imagens necessárias e iniciar os serviços.
+   ```bash
+   docker-compose up -d
+   ```
+
+---
+
+## Acessando os Serviços e Processando Arquivos
+
+Após executar uma das opções acima:
+
+1. **Coloque um arquivo DIMP para teste:**
+   Copie um arquivo `.txt` no formato DIMP para o diretório `dimp-files` correspondente ao ambiente que você subiu (`./dimp-files` ou `./docker-run/dimp-files`). O serviço `dimp-processor` irá detectá-lo e processá-lo automaticamente.
+
+2. **Verifique os logs (opcional):**
    Para acompanhar o processamento, você pode ver os logs da aplicação:
    ```bash
+   # Para o ambiente de build local
+   docker-compose logs -f dimp-processor
+
+   # Para o ambiente do Docker Hub (dentro da pasta docker-run)
    docker-compose logs -f dimp-processor
    ```
 
-## Exemplo de Utilização do BI (Metabase)
-
-Após iniciar os contêineres, a plataforma de BI estará acessível no seu navegador.
-
-1. **Acesse o Metabase:**
-   Abra o seguinte endereço no seu navegador:
-   [http://localhost:3000](http://localhost:3000)
-
-2. **Configure o Metabase (Primeiro Acesso):**
-   - Na primeira vez que você acessar, o Metabase pedirá para criar uma conta de administrador e conectar a um banco de dados.
-   - Preencha as informações da sua conta.
-   - Na tela de "Adicionar seus dados", selecione **PostgreSQL** e preencha com as seguintes informações (baseadas no `docker-compose.yml`):
+3. **Acesse o Metabase (BI):**
+   - Abra: [http://localhost:3000](http://localhost:3000)
+   - No primeiro acesso, configure uma conta de administrador.
+   - Conecte ao banco de dados **PostgreSQL** com as seguintes informações:
      - **Nome do Banco de Dados:** `dimpdb`
      - **Host:** `postgres`
      - **Porta:** `5432`
      - **Nome de usuário:** `user`
      - **Senha:** `password`
 
-3. **Explore os Dados:**
-   - Após a conexão, o Metabase irá sincronizar e analisar as tabelas do banco `dimpdb`.
-   - Você pode ir para a seção **"Navegar por dados"** para ver as tabelas (`dim_0000`, `dim_1100`, etc.).
-   - Use a opção **"Faça uma pergunta"** para criar suas próprias consultas e visualizações (gráficos, tabelas, etc.) sobre os dados DIMP processados.
+4. **Explore os Dados:**
+   - Após a conexão, navegue em **"Navegar por dados"** para ver as tabelas DIMP ou em **"Faça uma pergunta"** para criar seus próprios dashboards.
